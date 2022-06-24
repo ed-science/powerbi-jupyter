@@ -131,7 +131,7 @@ class TestSettingNewEmbedConfig:
             'permissions': 0,
             'datasetId': None
         }
-        assert report._embedded == False
+        assert not report._embedded
 
 
 class TestChangingNewReportSize:

@@ -155,9 +155,10 @@ class Report(DOMWidget):
     # Traits validators
     @validate('_report_filters_request')
     def _valid_report_filters_request(self, proposal):
-        if proposal['value'] != self.REPORT_FILTER_REQUEST_DEFAULT_STATE:
-            if (type(proposal['value']['filters']) is not list):
-                raise TraitError('Invalid filters ', proposal['value']['filters'])
+        if proposal['value'] != self.REPORT_FILTER_REQUEST_DEFAULT_STATE and (
+            type(proposal['value']['filters']) is not list
+        ):
+            raise TraitError('Invalid filters ', proposal['value']['filters'])
 
         return proposal['value']
 
@@ -268,11 +269,8 @@ class Report(DOMWidget):
                             if not scopes:
                                 scopes = CREATE_REPORT_SCOPES
 
-                            # Set DeviceCodeLoginAuthentication as authentication method to get access token for creating Power BI report
-                            Report._auth = DeviceCodeLoginAuthentication(client_id=client_id, scopes=scopes, tenant=tenant)
-                        else:
-                            # Set DeviceCodeLoginAuthentication to be the default global authentication method
-                            Report._auth = DeviceCodeLoginAuthentication(client_id=client_id, scopes=scopes, tenant=tenant)
+                        # Set DeviceCodeLoginAuthentication as authentication method to get access token for creating Power BI report
+                        Report._auth = DeviceCodeLoginAuthentication(client_id=client_id, scopes=scopes, tenant=tenant)
                     auth = Report._auth
                 self._auth = auth
 
@@ -282,7 +280,6 @@ class Report(DOMWidget):
                     token_type = TokenType.AAD.value
                     token_expiration = self._auth.get_access_token_details().get('id_token_claims').get('exp')
 
-                # Perform AppOwnsData embedding
                 else:
                     if not embed_token_request_body:
                         embed_token_request_body = self.DEFAULT_EMBED_TOKEN_REQUEST_BODY
@@ -292,10 +289,10 @@ class Report(DOMWidget):
                         if not group_id or not dataset_id:
                             raise Exception("Group Id and Dataset Id are required")
                         access_token = self._generate_embed_token(group_id=group_id, report_id=None, dataset_id=dataset_id, access_token=self._auth.get_access_token(), token_request_body=embed_token_request_body)
-                    else:
-                        if not group_id or not report_id:
-                            raise Exception("Group Id and Report Id are required")
+                    elif group_id and report_id:
                         access_token = self._generate_embed_token(group_id=group_id, report_id=report_id, dataset_id=None, access_token=self._auth.get_access_token(), token_request_body=embed_token_request_body)
+                    else:
+                        raise Exception("Group Id and Report Id are required")
                     token_type = TokenType.EMBED.value
 
             # Get embed URL for the report using access token
@@ -310,7 +307,10 @@ class Report(DOMWidget):
                     if not group_id or not dataset_id:
                         raise Exception("Group Id and Dataset Id are required")
                     request_url = f"https://api.powerbi.com/v1.0/myorg/groups/{group_id}/datasets/{dataset_id}"
-                    response = requests.get(request_url, headers={'Authorization': 'Bearer ' + token})
+                    response = requests.get(
+                        request_url, headers={'Authorization': f'Bearer {token}'}
+                    )
+
                     if not response.ok:
                         raise Exception("Get embed URL failed with status code ", response.status_code)
                     embed_url = response.json()['createReportEmbedURL']
@@ -318,7 +318,10 @@ class Report(DOMWidget):
                     if not group_id or not report_id:
                         raise Exception("Group Id and Report Id are required")
                     request_url = f"https://api.powerbi.com/v1.0/myorg/groups/{group_id}/reports/{report_id}"
-                    response = requests.get(request_url, headers={'Authorization': 'Bearer ' + token})
+                    response = requests.get(
+                        request_url, headers={'Authorization': f'Bearer {token}'}
+                    )
+
                     if not response.ok:
                         raise Exception("Get embed URL failed with status code ", response.status_code)
                     embed_url = response.json()['embedUrl']
@@ -502,11 +505,11 @@ class Report(DOMWidget):
         """
         # Check if event is one of the Report.ALLOWED_EVENTS list
         if event not in self.ALLOWED_EVENTS:
-            raise Exception(event + " event is not valid")
+            raise Exception(f"{event} event is not valid")
 
         # Check if event is one of the Report.SUPPORTED_EVENTS list
         if event not in self.SUPPORTED_EVENTS:
-            raise Exception(event + " event is not supported")
+            raise Exception(f"{event} event is not supported")
 
         # Remove handler if registered for the current event
         if event in self._registered_event_handlers:
@@ -748,7 +751,12 @@ class Report(DOMWidget):
             request_url = f"https://api.powerbi.com/v1.0/myorg/groups/{group_id}/datasets/{dataset_id}/GenerateToken"
         else:
             request_url = f"https://api.powerbi.com/v1.0/myorg/groups/{group_id}/reports/{report_id}/GenerateToken"
-        response = requests.post(request_url, headers={'Authorization': 'Bearer ' + access_token}, data=token_request_body)
+        response = requests.post(
+            request_url,
+            headers={'Authorization': f'Bearer {access_token}'},
+            data=token_request_body,
+        )
+
         if not response.ok:
             raise Exception("Generate embed token failed with status code ", response.status_code)
 

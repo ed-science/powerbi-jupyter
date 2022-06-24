@@ -121,24 +121,20 @@ class DeviceCodeLoginAuthentication(AuthenticationResult):
         flow = app.initiate_device_flow(self.scopes)
 
         if "user_code" not in flow:
-            raise ValueError("Fail to create device flow. Err: %s" % json.dumps(flow, indent=4))
+            raise ValueError(
+                f"Fail to create device flow. Err: {json.dumps(flow, indent=4)}"
+            )
+
 
         # Display the device code
         print("Performing interactive authentication. Please follow the instructions on the terminal.\n", flow["message"])
 
         # Ideally you should wait here, in order to save some unnecessary polling
         result = app.acquire_token_by_device_flow(flow)
-        # By default it will block
-        # You can follow this instruction to shorten the block time
-        #    https://msal-python.readthedocs.io/en/latest/#msal.PublicClientApplication.acquire_token_by_device_flow
-        # or you may even turn off the blocking behavior,
-        # and then keep calling acquire_token_by_device_flow(flow) in your own customized loop.
-
-        if "access_token" in result:
-            print("You have logged in.\nInteractive authentication successfully completed.")
-            return result
-        else:
+        if "access_token" not in result:
             raise RuntimeError(result.get("error_description"))
+        print("You have logged in.\nInteractive authentication successfully completed.")
+        return result
 
 
 class InteractiveLoginAuthentication(AuthenticationResult):
@@ -188,11 +184,10 @@ class InteractiveLoginAuthentication(AuthenticationResult):
         print("A local browser window will be open for interactive sign in.")
         result = app.acquire_token_interactive(self.scopes)
 
-        if "access_token" in result:
-            print("You have logged in.\nInteractive authentication successfully completed.")
-            return result
-        else:
+        if "access_token" not in result:
             raise RuntimeError(result.get("error_description"))
+        print("You have logged in.\nInteractive authentication successfully completed.")
+        return result
 
 class MasterUserAuthentication(AuthenticationResult):
 
@@ -246,11 +241,10 @@ class MasterUserAuthentication(AuthenticationResult):
         print("Authenticating master user.")
         result = app.acquire_token_by_username_password(username=self.username, password=self.password, scopes=self.scopes)
 
-        if "access_token" in result:
-            print("Master user authentication successfully completed.")
-            return result
-        else:
+        if "access_token" not in result:
             raise RuntimeError(result.get("error_description"))
+        print("Master user authentication successfully completed.")
+        return result
 
 
 class ServicePrincipalAuthentication(AuthenticationResult):
@@ -293,11 +287,10 @@ class ServicePrincipalAuthentication(AuthenticationResult):
         print("Authenticating service principal.")
         result = app.acquire_token_for_client(self.scopes)
 
-        if "access_token" in result:
-            print("Service principal authentication successfully completed.")
-            return result
-        else:
+        if "access_token" not in result:
             raise RuntimeError(result.get("error_description"))
+        print("Service principal authentication successfully completed.")
+        return result
 
     def refresh_token(self):
         """Acquire token(s) with Service Principal.
